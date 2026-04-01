@@ -1,0 +1,45 @@
+name: Weekly Report Update
+
+on:
+  schedule:
+    # 每周一早上9:00 (UTC+8 = UTC 1:00) 自动更新
+    - cron: '0 1 * * 1'
+  workflow_dispatch:  # 支持手动触发
+
+permissions:
+  contents: write
+
+jobs:
+  update-report:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install requests beautifulsoup4 lxml
+
+      - name: Run update script
+        run: |
+          python scripts/update_report.py
+
+      - name: Check for changes
+        id: changes
+        run: |
+          git diff --quiet data/weekly-report.json || echo "changed=true" >> $GITHUB_OUTPUT
+
+      - name: Commit and push
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add data/weekly-report.json
+          git commit -m "📊 Weekly report update - $(date +'%Y-W%V')"
+          git push

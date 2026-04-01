@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TME音乐广告运营 — 周报Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        /* ===== CSS Variables & Reset ===== */
+        :root {
+            --primary-green: #1DB954;
+            --primary-purple: #7B2FBE;
+            --gradient-main: linear-gradient(135deg, #1DB954 0%, #7B2FBE 100%);
+            --gradient-soft: linear-gradient(135deg, rgba(29,185,84,0.08) 0%, rgba(123,47,190,0.08) 100%);
+            --gradient-card: linear-gradient(135deg, rgba(29,185,84,0.04) 0%, rgba(123,47,190,0.04) 100%);
+            --bg-dark: #0d0f1a;
+            --bg-panel: #141625;
+            --bg-card: #1a1d30;
+            --bg-hover: #222540;
+            --text-primary: #e8eaf0;
+            --text-secondary: #9498b0;
+            --text-muted: #6b6f88;
+            --border: rgba(255,255,255,0.06);
+            --shadow: 0 4px 24px rgba(0,0,0,0.3);
+            --radius: 12px;
+            --sidebar-width: 240px;
+            --topbar-height: 60px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* ===== Scrollbar ===== */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+        /* ===== Sidebar ===== */
+        .sidebar {
+            position: fixed;
+            left: 0; top: 0;
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: var(--bg-panel);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+        }
+
+        .sidebar-brand {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sidebar-brand h1 {
+            font-size: 16px;
+            font-weight: 700;
+            background: var(--gradient-main);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.4;
+        }
+
+        .sidebar-brand .brand-sub {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 12px 0;
+            overflow-y: auto;
+        }
+
+        .nav-section-title {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-muted);
+            padding: 16px 20px 8px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+            gap: 12px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .nav-item:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: var(--gradient-soft);
+            color: var(--text-primary);
+            border-left-color: var(--primary-green);
+        }
+
+        .nav-item .nav-icon {
+            font-size: 18px;
+            width: 24px;
+            text-align: center;
+        }
+
+        .nav-item .nav-badge {
+            margin-left: auto;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            background: var(--gradient-main);
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .sidebar-footer {
+            padding: 16px 20px;
+            border-top: 1px solid var(--border);
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .sidebar-footer .update-dot {
+            display: inline-block;
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--primary-green);
+            margin-right: 6px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* ===== Top Bar ===== */
+        .topbar {
+            position: fixed;
+            left: var(--sidebar-width);
+            top: 0;
+            right: 0;
+            height: var(--topbar-height);
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 28px;
+            z-index: 99;
+        }
+
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .topbar-left h2 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .topbar-week {
+            font-size: 12px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            background: var(--gradient-main);
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .topbar-right .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: rgba(29,185,84,0.12);
+            border-radius: 6px;
+            color: var(--primary-green);
+            font-weight: 500;
+        }
+
+        /* ===== Main Content ===== */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            margin-top: var(--topbar-height);
+            height: calc(100vh - var(--topbar-height));
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        /* ===== Panel (each module) ===== */
+        .panel {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .panel.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ===== Overview Panel ===== */
+        .overview-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .stat-card:hover {
+            border-color: rgba(29,185,84,0.3);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: var(--gradient-main);
+        }
+
+        .stat-card .stat-icon {
+            font-size: 28px;
+            margin-bottom: 12px;
+        }
+
+        .stat-card .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            background: var(--gradient-main);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-card .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .stat-card .stat-change {
+            font-size: 11px;
+            margin-top: 8px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        .stat-change.up { background: rgba(29,185,84,0.15); color: #1DB954; }
+        .stat-change.down { background: rgba(255,75,75,0.15); color: #ff4b4b; }
+
+        /* ===== Cards Grid ===== */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            transition: all 0.3s;
+        }
+
+        .card:hover {
+            border-color: rgba(123,47,190,0.3);
+            box-shadow: var(--shadow);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .card-header h3 {
+            font-size: 15px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-header .card-tag {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .tag-green { background: rgba(29,185,84,0.15); color: var(--primary-green); }
+        .tag-purple { background: rgba(123,47,190,0.15); color: var(--primary-purple); }
+        .tag-red { background: rgba(255,75,75,0.15); color: #ff4b4b; }
+        .tag-yellow { background: rgba(255,193,7,0.15); color: #ffc107; }
+
+        /* ===== Competitor Cards ===== */
+        .competitor-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            transition: all 0.3s;
+        }
+
+        .competitor-card:hover {
+            border-color: rgba(29,185,84,0.3);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .competitor-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .competitor-logo {
+            font-size: 32px;
+        }
+
+        .competitor-name {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .competitor-pos {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .section-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin: 14px 0 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .feature-list, .hot-list {
+            list-style: none;
+        }
+
+        .feature-list li, .hot-list li {
+            font-size: 13px;
+            color: var(--text-secondary);
+            padding: 6px 0;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            line-height: 1.5;
+        }
+
+        .feature-list li:last-child, .hot-list li:last-child {
+            border-bottom: none;
+        }
+
+        .feature-list li::before {
+            content: '🆕';
+            font-size: 11px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .hot-list li::before {
+            content: '🔥';
+            font-size: 11px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        /* ===== News Items ===== */
+        .news-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            margin-bottom: 12px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        .news-item:hover {
+            border-color: rgba(123,47,190,0.3);
+            background: var(--bg-hover);
+        }
+
+        .news-category {
+            font-size: 10px;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-weight: 600;
+            white-space: nowrap;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .news-body h4 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .news-body p {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .news-meta {
+            display: flex;
+            gap: 12px;
+            margin-top: 6px;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .impact-high { color: #ff4b4b; }
+        .impact-mid { color: #ffc107; }
+
+        /* ===== Chart Containers ===== */
+        .chart-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .chart-container h3 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .charts-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        /* ===== Strategy Cards ===== */
+        .strategy-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .strategy-card:hover {
+            border-color: rgba(29,185,84,0.3);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .strategy-priority {
+            position: absolute;
+            top: 16px; right: 16px;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 700;
+        }
+
+        .priority-high { background: rgba(255,75,75,0.15); color: #ff4b4b; }
+        .priority-mid { background: rgba(255,193,7,0.15); color: #ffc107; }
+
+        .strategy-category {
+            font-size: 11px;
+            color: var(--primary-purple);
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .strategy-card h4 {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .strategy-card p {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+
+        .strategy-impact {
+            font-size: 12px;
+            padding: 8px 12px;
+            background: rgba(29,185,84,0.08);
+            border-radius: 8px;
+            color: var(--primary-green);
+            border-left: 3px solid var(--primary-green);
+        }
+
+        /* ===== Summary Lists ===== */
+        .summary-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .summary-section h3 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .summary-list {
+            list-style: none;
+        }
+
+        .summary-list li {
+            font-size: 13px;
+            color: var(--text-secondary);
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            line-height: 1.5;
+        }
+
+        .summary-list li:last-child { border-bottom: none; }
+
+        .summary-list li .bullet {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            margin-top: 6px;
+        }
+
+        .bullet-green { background: var(--primary-green); }
+        .bullet-purple { background: var(--primary-purple); }
+        .bullet-yellow { background: #ffc107; }
+
+        /* ===== Earnings Table ===== */
+        .earnings-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .earnings-table th {
+            text-align: left;
+            padding: 10px 14px;
+            border-bottom: 2px solid var(--border);
+            color: var(--text-muted);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .earnings-table td {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        .earnings-table tr:hover td {
+            background: var(--bg-hover);
+        }
+
+        .earnings-table .highlight-cell {
+            color: var(--primary-green);
+            font-weight: 600;
+        }
+
+        /* ===== TME Highlight Box ===== */
+        .tme-highlight {
+            background: var(--gradient-soft);
+            border: 1px solid rgba(29,185,84,0.2);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .tme-highlight h3 {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            background: var(--gradient-main);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .tme-metrics {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .tme-metric {
+            text-align: center;
+        }
+
+        .tme-metric .value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .tme-metric .label {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .tme-metric .change {
+            font-size: 11px;
+            color: var(--primary-green);
+            margin-top: 4px;
+        }
+
+        .tme-highlights-list {
+            list-style: none;
+        }
+
+        .tme-highlights-list li {
+            font-size: 13px;
+            color: var(--text-secondary);
+            padding: 6px 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            line-height: 1.5;
+        }
+
+        .tme-highlights-list li::before {
+            content: '✦';
+            color: var(--primary-green);
+            flex-shrink: 0;
+        }
+
+        /* ===== Disclaimer ===== */
+        .disclaimer {
+            margin-top: 24px;
+            padding: 14px 18px;
+            background: rgba(255,193,7,0.06);
+            border: 1px solid rgba(255,193,7,0.15);
+            border-radius: 8px;
+            font-size: 11px;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        .disclaimer strong {
+            color: #ffc107;
+        }
+
+        /* ===== Section Headers ===== */
+        .panel-header {
+            margin-bottom: 20px;
+        }
+
+        .panel-header h2 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .panel-header p {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        /* ===== Tooltip ===== */
+        .custom-tooltip {
+            background: var(--bg-panel) !important;
+            border: 1px solid var(--border) !important;
+            border-radius: 8px !important;
+            padding: 8px 12px !important;
+            font-size: 12px !important;
+            box-shadow: var(--shadow) !important;
+        }
+
+        /* ===== Soundwave animation ===== */
+        .soundwave {
+            display: flex;
+            align-items: flex-end;
+            gap: 2px;
+            height: 20px;
+        }
+
+        .soundwave span {
+            display: block;
+            width: 3px;
+            background: var(--gradient-main);
+            border-radius: 2px;
+            animation: wave 1.2s ease-in-out infinite;
+        }
+
+        .soundwave span:nth-child(1) { height: 8px; animation-delay: 0s; }
+        .soundwave span:nth-child(2) { height: 14px; animation-delay: 0.15s; }
+        .soundwave span:nth-child(3) { height: 6px; animation-delay: 0.3s; }
+        .soundwave span:nth-child(4) { height: 18px; animation-delay: 0.45s; }
+        .soundwave span:nth-child(5) { height: 10px; animation-delay: 0.6s; }
+
+        @keyframes wave {
+            0%, 100% { transform: scaleY(1); }
+            50% { transform: scaleY(0.4); }
+        }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 1200px) {
+            .overview-stats { grid-template-columns: repeat(2, 1fr); }
+            .charts-row { grid-template-columns: 1fr; }
+            .tme-metrics { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .topbar { left: 0; }
+            .main-content { margin-left: 0; }
+            .overview-stats { grid-template-columns: 1fr; }
+            .cards-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <h1>🎵 TME Ad Ops</h1>
+            <div class="brand-sub">Weekly Intelligence</div>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-section-title">Dashboard</div>
+            <div class="nav-item active" data-panel="overview">
+                <span class="nav-icon">📋</span>
+                <span>周报总览</span>
+                <span class="nav-badge">NEW</span>
+            </div>
+            <div class="nav-section-title">情报模块</div>
+            <div class="nav-item" data-panel="competitor">
+                <span class="nav-icon">🔍</span>
+                <span>竞品产品动态</span>
+            </div>
+            <div class="nav-item" data-panel="earnings">
+                <span class="nav-icon">📊</span>
+                <span>财报解读</span>
+            </div>
+            <div class="nav-item" data-panel="industry">
+                <span class="nav-icon">📰</span>
+                <span>行业动态</span>
+            </div>
+            <div class="nav-item" data-panel="users">
+                <span class="nav-icon">👥</span>
+                <span>用户指标对比</span>
+            </div>
+            <div class="nav-section-title">输出</div>
+            <div class="nav-item" data-panel="strategy">
+                <span class="nav-icon">🎯</span>
+                <span>广告策略建议</span>
+            </div>
+        </nav>
+        <div class="sidebar-footer">
+            <span class="update-dot"></span>
+            <span id="footer-update">自动更新中...</span>
+            <div class="soundwave" style="margin-top: 10px;">
+                <span></span><span></span><span></span><span></span><span></span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Top Bar -->
+    <header class="topbar">
+        <div class="topbar-left">
+            <h2 id="topbar-title">周报总览</h2>
+            <span class="topbar-week" id="topbar-week">W14</span>
+        </div>
+        <div class="topbar-right">
+            <div class="status-indicator">
+                <span class="update-dot"></span>
+                <span id="topbar-time">已自动更新</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+        <!-- Panel: Overview (M6) -->
+        <section class="panel active" id="panel-overview">
+            <div class="panel-header">
+                <h2>📋 周报总览</h2>
+                <p>本周音乐广告运营关键变化、重点关注与下周展望</p>
+            </div>
+
+            <div class="overview-stats" id="overview-stats"></div>
+
+            <div class="summary-section" id="key-changes-section">
+                <h3>⚡ 本周关键变化</h3>
+                <ul class="summary-list" id="key-changes"></ul>
+            </div>
+
+            <div class="summary-section" id="focus-section">
+                <h3>🎯 重点关注事项</h3>
+                <ul class="summary-list" id="focus-items"></ul>
+            </div>
+
+            <div class="summary-section" id="next-week-section">
+                <h3>📅 下周计划</h3>
+                <ul class="summary-list" id="next-week"></ul>
+            </div>
+
+            <div class="disclaimer">
+                <strong>⚠️ 重要说明：</strong>本平台不含任何内部业务数据，所有信息均为AI基于公开数据生成的分析与建议，仅供参考，不构成任何商业决策依据。
+            </div>
+        </section>
+
+        <!-- Panel: Competitor (M1) -->
+        <section class="panel" id="panel-competitor">
+            <div class="panel-header">
+                <h2>🔍 竞品产品动态</h2>
+                <p>Spotify · 网易云音乐 · Apple Music · 汽水音乐 — 产品定位、新功能、热点内容追踪</p>
+            </div>
+            <div class="cards-grid" id="competitor-cards"></div>
+        </section>
+
+        <!-- Panel: Earnings (M2) -->
+        <section class="panel" id="panel-earnings">
+            <div class="panel-header">
+                <h2>📊 财报解读</h2>
+                <p id="earnings-period">TME及竞品关键财务指标与增长趋势</p>
+            </div>
+            <div id="tme-highlight-box"></div>
+            <div class="chart-container">
+                <h3>📈 竞品财务对比</h3>
+                <div style="overflow-x: auto;">
+                    <table class="earnings-table" id="earnings-table">
+                        <thead></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Panel: Industry (M3) -->
+        <section class="panel" id="panel-industry">
+            <div class="panel-header">
+                <h2>📰 行业动态</h2>
+                <p>音乐行业资讯、版权动态、热歌趋势、政策变化</p>
+            </div>
+            <div id="news-list"></div>
+        </section>
+
+        <!-- Panel: Users (M4) -->
+        <section class="panel" id="panel-users">
+            <div class="panel-header">
+                <h2>👥 用户指标对比</h2>
+                <p>TME全产品线 vs 竞品核心指标：MAU、ARPU、付费率、会员占比</p>
+            </div>
+            <div class="charts-row" id="user-charts"></div>
+            <div class="chart-container" id="trend-chart-container">
+                <h3>📈 MAU季度趋势</h3>
+                <canvas id="trend-chart" height="100"></canvas>
+            </div>
+        </section>
+
+        <!-- Panel: Strategy (M5) -->
+        <section class="panel" id="panel-strategy">
+            <div class="panel-header">
+                <h2>🎯 广告策略建议</h2>
+                <p>综合竞品、财报、行业、用户四维数据，输出TME广告投放策略建议</p>
+            </div>
+            <div class="cards-grid" id="strategy-cards"></div>
+        </section>
+
+    </main>
+
+    <script>
+    // ===== Data Loading & Rendering =====
+    let reportData = null;
+    let chartInstances = [];
+
+    async function loadData() {
+        try {
+            const resp = await fetch('data/weekly-report.json');
+            reportData = await resp.json();
+            renderAll();
+        } catch(e) {
+            console.error('Failed to load data:', e);
+        }
+    }
+
+    function renderAll() {
+        if (!reportData) return;
+        renderTopbar();
+        renderOverview();
+        renderCompetitor();
+        renderEarnings();
+        renderIndustry();
+        renderUsers();
+        renderStrategy();
+    }
+
+    // ===== Topbar =====
+    function renderTopbar() {
+        const m = reportData.meta;
+        document.getElementById('topbar-week').textContent = m.week;
+        document.getElementById('topbar-time').textContent = `更新于 ${new Date(m.generated_at).toLocaleDateString('zh-CN')}`;
+        document.getElementById('footer-update').textContent = `${m.week} · 已更新`;
+    }
+
+    // ===== Overview (M6) =====
+    function renderOverview() {
+        const d = reportData.m6_summary;
+        const m4 = reportData.m4_users;
+
+        // Stats
+        const statsEl = document.getElementById('overview-stats');
+        const qqMAU = m4.metrics.find(m => m.name.includes('MAU')).data['QQ音乐'];
+        const qqARPU = m4.metrics.find(m => m.name.includes('ARPU')).data['QQ音乐'];
+        const payRate = m4.metrics.find(m => m.name.includes('付费率')).data['QQ音乐'];
+        const competitors = reportData.m1_competitor.competitors.length;
+
+        statsEl.innerHTML = `
+            <div class="stat-card">
+                <div class="stat-icon">🎵</div>
+                <div class="stat-value">${qqMAU}亿</div>
+                <div class="stat-label">QQ音乐 MAU</div>
+                <div class="stat-change up">↑ 稳步增长</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">💰</div>
+                <div class="stat-value">¥${qqARPU}</div>
+                <div class="stat-label">ARPU (元/月)</div>
+                <div class="stat-change up">↑ 持续提升</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📈</div>
+                <div class="stat-value">${payRate}%</div>
+                <div class="stat-label">付费率</div>
+                <div class="stat-change up">↑ 行业领先</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🔍</div>
+                <div class="stat-value">${competitors}</div>
+                <div class="stat-label">监控竞品数</div>
+                <div class="stat-change up">实时追踪</div>
+            </div>
+        `;
+
+        // Key changes
+        const bullets = ['bullet-green', 'bullet-purple', 'bullet-yellow'];
+        document.getElementById('key-changes').innerHTML = d.key_changes.map((c, i) =>
+            `<li><span class="bullet ${bullets[i % 3]}"></span>${c}</li>`
+        ).join('');
+
+        document.getElementById('focus-items').innerHTML = d.focus_items.map((c, i) =>
+            `<li><span class="bullet ${bullets[i % 3]}"></span>${c}</li>`
+        ).join('');
+
+        document.getElementById('next-week').innerHTML = d.next_week.map((c, i) =>
+            `<li><span class="bullet ${bullets[i % 3]}"></span>${c}</li>`
+        ).join('');
+    }
+
+    // ===== Competitor (M1) =====
+    function renderCompetitor() {
+        const d = reportData.m1_competitor;
+        const container = document.getElementById('competitor-cards');
+        container.innerHTML = d.competitors.map(c => `
+            <div class="competitor-card">
+                <div class="competitor-header">
+                    <span class="competitor-logo">${c.logo}</span>
+                    <div>
+                        <div class="competitor-name">${c.name}</div>
+                        <div class="competitor-pos">${c.positioning}</div>
+                    </div>
+                </div>
+                <div class="section-title">🆕 新功能/更新</div>
+                <ul class="feature-list">
+                    ${c.new_features.map(f => `<li>${f}</li>`).join('')}
+                </ul>
+                <div class="section-title">🔥 热点内容</div>
+                <ul class="hot-list">
+                    ${c.hot_content.map(h => `<li>${h}</li>`).join('')}
+                </ul>
+            </div>
+        `).join('');
+    }
+
+    // ===== Earnings (M2) =====
+    function renderEarnings() {
+        const d = reportData.m2_earnings;
+        document.getElementById('earnings-period').textContent = `${d.period} · TME及竞品关键财务指标与增长趋势`;
+
+        // TME Highlight
+        const box = document.getElementById('tme-highlight-box');
+        box.innerHTML = `
+            <div class="tme-highlight">
+                <h3>🎵 腾讯音乐 (TME) — ${d.period}</h3>
+                <div class="tme-metrics">
+                    <div class="tme-metric">
+                        <div class="value">${d.tme.revenue}</div>
+                        <div class="label">总营收</div>
+                        <div class="change">${d.tme.revenue_yoy}</div>
+                    </div>
+                    <div class="tme-metric">
+                        <div class="value">${d.tme.paying_users}</div>
+                        <div class="label">付费用户</div>
+                        <div class="change">${d.tme.paying_users_yoy}</div>
+                    </div>
+                    <div class="tme-metric">
+                        <div class="value">${d.tme.online_music_revenue}</div>
+                        <div class="label">在线音乐收入</div>
+                        <div class="change">核心增长引擎</div>
+                    </div>
+                </div>
+                <ul class="tme-highlights-list">
+                    ${d.tme.highlights.map(h => `<li>${h}</li>`).join('')}
+                </ul>
+            </div>
+        `;
+
+        // Competitor table
+        const thead = document.querySelector('#earnings-table thead');
+        const tbody = document.querySelector('#earnings-table tbody');
+        thead.innerHTML = `<tr>
+            <th>平台</th><th>营收</th><th>同比</th><th>付费用户</th><th>亮点</th>
+        </tr>`;
+        tbody.innerHTML = d.competitors.map(c => `
+            <tr>
+                <td><strong>${c.name}</strong></td>
+                <td>${c.revenue}</td>
+                <td class="highlight-cell">${c.revenue_yoy}</td>
+                <td>${c.subscribers}</td>
+                <td>${c.key_metric}</td>
+            </tr>
+        `).join('');
+    }
+
+    // ===== Industry (M3) =====
+    function renderIndustry() {
+        const d = reportData.m3_industry;
+        const categoryColors = {
+            '版权': 'tag-purple',
+            '技术': 'tag-green',
+            '市场': 'tag-yellow',
+            '热歌': 'tag-red',
+            '政策': 'tag-purple'
+        };
+
+        document.getElementById('news-list').innerHTML = d.news.map(n => `
+            <div class="news-item">
+                <span class="news-category ${categoryColors[n.category] || 'tag-green'}">${n.category}</span>
+                <div class="news-body">
+                    <h4>${n.title}</h4>
+                    <p>${n.summary}</p>
+                    <div class="news-meta">
+                        <span>📅 ${n.date}</span>
+                        <span class="${n.impact === '高' ? 'impact-high' : 'impact-mid'}">影响: ${n.impact}</span>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // ===== Users (M4) =====
+    function renderUsers() {
+        const d = reportData.m4_users;
+
+        // Destroy old charts
+        chartInstances.forEach(c => c.destroy());
+        chartInstances = [];
+
+        const chartsRow = document.getElementById('user-charts');
+        chartsRow.innerHTML = '';
+
+        const colors = {
+            'QQ音乐': '#1DB954',
+            '酷狗音乐': '#FF6B6B',
+            '酷我音乐': '#FFA726',
+            '网易云音乐': '#E53935',
+            '汽水音乐': '#29B6F6',
+            'Spotify': '#1ED760'
+        };
+
+        d.metrics.forEach((metric, idx) => {
+            const div = document.createElement('div');
+            div.className = 'chart-container';
+            div.innerHTML = `<h3>${metric.name} (${metric.unit})</h3><canvas id="chart-${idx}" height="120"></canvas>`;
+            chartsRow.appendChild(div);
+
+            const labels = Object.keys(metric.data);
+            const values = Object.values(metric.data);
+            const bgColors = labels.map(l => colors[l] || '#888');
+
+            const ctx = document.getElementById(`chart-${idx}`).getContext('2d');
+            const chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: bgColors.map(c => c + '88'),
+                        borderColor: bgColors,
+                        borderWidth: 1,
+                        borderRadius: 6,
+                        hoverBackgroundColor: bgColors
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#141625',
+                            borderColor: 'rgba(255,255,255,0.1)',
+                            borderWidth: 1,
+                            titleColor: '#e8eaf0',
+                            bodyColor: '#9498b0',
+                            padding: 12,
+                            cornerRadius: 8,
+                            displayColors: false,
+                            callbacks: {
+                                label: function(ctx) {
+                                    return `${ctx.label}: ${ctx.parsed.y} ${metric.unit}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#6b6f88', font: { size: 11 } },
+                            grid: { display: false }
+                        },
+                        y: {
+                            ticks: { color: '#6b6f88', font: { size: 11 } },
+                            grid: { color: 'rgba(255,255,255,0.04)' }
+                        }
+                    }
+                }
+            });
+            chartInstances.push(chart);
+        });
+
+        // Trend line chart
+        const trends = d.trends;
+        const trendCtx = document.getElementById('trend-chart').getContext('2d');
+        const trendDatasets = Object.entries(trends.datasets).map(([name, data]) => ({
+            label: name,
+            data: data,
+            borderColor: colors[name] || '#888',
+            backgroundColor: (colors[name] || '#888') + '22',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 4,
+            pointHoverRadius: 7,
+            borderWidth: 2
+        }));
+
+        const trendChart = new Chart(trendCtx, {
+            type: 'line',
+            data: {
+                labels: trends.labels,
+                datasets: trendDatasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                plugins: {
+                    legend: {
+                        labels: { color: '#9498b0', font: { size: 12 }, usePointStyle: true }
+                    },
+                    tooltip: {
+                        backgroundColor: '#141625',
+                        borderColor: 'rgba(255,255,255,0.1)',
+                        borderWidth: 1,
+                        titleColor: '#e8eaf0',
+                        bodyColor: '#9498b0',
+                        padding: 12,
+                        cornerRadius: 8,
+                        callbacks: {
+                            label: function(ctx) {
+                                return `${ctx.dataset.label}: ${ctx.parsed.y}亿`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: { color: '#6b6f88', font: { size: 11 } },
+                        grid: { color: 'rgba(255,255,255,0.04)' }
+                    },
+                    y: {
+                        ticks: { color: '#6b6f88', font: { size: 11 } },
+                        grid: { color: 'rgba(255,255,255,0.04)' }
+                    }
+                }
+            }
+        });
+        chartInstances.push(trendChart);
+    }
+
+    // ===== Strategy (M5) =====
+    function renderStrategy() {
+        const d = reportData.m5_strategy;
+        document.getElementById('strategy-cards').innerHTML = d.recommendations.map(r => `
+            <div class="strategy-card">
+                <span class="strategy-priority ${r.priority === '高' ? 'priority-high' : 'priority-mid'}">${r.priority}优先</span>
+                <div class="strategy-category">${r.category}</div>
+                <h4>${r.title}</h4>
+                <p>${r.detail}</p>
+                <div class="strategy-impact">📊 预期效果: ${r.expected_impact}</div>
+            </div>
+        `).join('');
+    }
+
+    // ===== Navigation =====
+    const panelTitles = {
+        'overview': '周报总览',
+        'competitor': '竞品产品动态',
+        'earnings': '财报解读',
+        'industry': '行业动态',
+        'users': '用户指标对比',
+        'strategy': '广告策略建议'
+    };
+
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const panel = item.dataset.panel;
+
+            // Update active nav
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            item.classList.add('active');
+
+            // Switch panel
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.getElementById(`panel-${panel}`).classList.add('active');
+
+            // Update topbar title
+            document.getElementById('topbar-title').textContent = panelTitles[panel] || '';
+        });
+    });
+
+    // ===== Init =====
+    loadData();
+    </script>
+
+</body>
+</html>
