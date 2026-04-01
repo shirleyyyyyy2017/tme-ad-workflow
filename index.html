@@ -510,6 +510,24 @@
             margin-bottom: 8px;
         }
 
+        .chart-wrapper {
+            position: relative;
+            height: 200px;
+            width: 100%;
+        }
+
+        .chart-wrapper canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        #trend-chart-container .chart-wrapper {
+            height: 180px;
+        }
+
         /* ===== Strategy Cards ===== */
         .strategy-card {
             background: var(--bg-card);
@@ -937,7 +955,7 @@
             <div class="charts-row" id="user-charts"></div>
             <div class="chart-container" id="trend-chart-container">
                 <h3>📈 MAU季度趋势</h3>
-                <canvas id="trend-chart" height="70"></canvas>
+                <div class="chart-wrapper"><canvas id="trend-chart"></canvas></div>
             </div>
         </section>
 
@@ -1164,7 +1182,7 @@
         d.metrics.forEach((metric, idx) => {
             const div = document.createElement('div');
             div.className = 'chart-container';
-            div.innerHTML = `<h3>${metric.name} (${metric.unit})</h3><canvas id="chart-${idx}" height="80"></canvas>`;
+            div.innerHTML = `<h3>${metric.name} (${metric.unit})</h3><div class="chart-wrapper"><canvas id="chart-${idx}"></canvas></div>`;
             chartsRow.appendChild(div);
 
             const labels = Object.keys(metric.data);
